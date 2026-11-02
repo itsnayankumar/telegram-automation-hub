@@ -6,6 +6,7 @@ from yt_dlp import YoutubeDL
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 from telegram.ext import MessageHandler, filters
+from telegram.ext import TypeHandler, ApplicationHandlerStop
 
 load_dotenv("config.env")
 
@@ -45,9 +46,14 @@ async def link_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("Send me a link")
       
+async def gatekeeper(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    if user is None or user.id != MY_ID:
+        raise ApplicationHandlerStop
 
 app = ApplicationBuilder().token(TOKEN).build()
 
+app.add_handler(TypeHandler(Update, gatekeeper), group=-1)
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("help", help_cmd))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, link_handler))
