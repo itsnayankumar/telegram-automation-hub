@@ -20,7 +20,9 @@ async def help_cmd(update: Update,context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Bot is Helping")
 
 def download_video(url):
-    options = {"outtmpl": "downloads/%(title)s.%(ext)s"}
+    options = {"outtmpl": "downloads/%(title)s.%(ext)s",
+    "cookiefile": "cookies.txt",
+    }
 
     with YoutubeDL(options) as ydl:
         info = ydl.extract_info(url, download=True)
@@ -36,9 +38,10 @@ async def link_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             path = await asyncio.to_thread(download_video, text)
             with open(path,"rb") as f:
+                await update.message.reply_document(f)
         except:
-            await update.message.rep_text("That link didn't work")
-        await update.message.reply_document(f)
+            await update.message.reply_text("That link didn't work")
+        
     else:
         await update.message.reply_text("Send me a link")
       
