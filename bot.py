@@ -20,11 +20,17 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def help_cmd(update: Update,context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Bot is Helping")
 
-def download_video(url):
+def download_video(url, mode="video"):
     options = {"outtmpl": "downloads/%(title)s.%(ext)s",
     "cookiefile": "cookies.txt",
     }
 
+    if mode == "audio":
+        options["format"] = "bestaudio/best"
+        options["postproccessors"] = [{
+            "key": "FFmpegExractAudio",
+            "preferredcodec": "mp3",
+        }]
     with YoutubeDL(options) as ydl:
         info = ydl.extract_info(url, download=True)
         path = ydl.prepare_filename(info)
@@ -51,10 +57,33 @@ async def gatekeeper(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user is None or user.id != MY_ID:
         raise ApplicationHandlerStop
 
+async def say(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if len(context.args) == 0:
+        await update.message.reply_text("Usage: /say <words>")
+        return
+    word = context.args
+    await update.message.reply_text(" ".join(word))
+
+async def audio(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if len(context.args) == 0:
+        await update.message.reply_text("usage: /audio <url>")
+        return
+    url = context.args[0]
+    if url.startswith("http"):
+        await update.message.reply_text("Downloading.....")
+        try:
+            path = await asyncio.to_thread(download_video, url, "audio")
+            with open(path,"rb") as f:
+                await update.message.reply_document(f)
+        except:
+            await update.message.reply_text("That doesn't look like a link")
+
 app = ApplicationBuilder().token(TOKEN).build()
 
 app.add_handler(TypeHandler(Update, gatekeeper), group=-1)
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("help", help_cmd))
+app.add_handler(CommandHandler("say", say))
+app.add_handler(CommandHandler("audio", audio))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, link_handler))
 app.run_polling()
